@@ -1,90 +1,170 @@
+Here's the polished version:
+
 ````markdown
+<div align="center">
+
 # MaliksTech PM
 
-A full-stack project management system: create projects, break them into tasks, track status on a Kanban board, collaborate via comments, and even let AI generate a full project plan from a one-line description.
+**A full-stack project management platform** — plan projects, break them into tasks, track progress on a Kanban board, collaborate through comments, and let AI generate an entire task breakdown from a single sentence.
 
-**Live repo:** https://github.com/imalekj/MaliksTech.PM
+[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![SQL Server](https://img.shields.io/badge/SQL_Server-CC2927?logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/sql-server)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+
+[Repository](https://github.com/imalekj/MaliksTech.PM) · [Report an Issue](https://github.com/imalekj/MaliksTech.PM/issues)
+
+</div>
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Environment & Configuration](#environment--configuration)
+- [API Reference](#api-reference)
+- [Security](#security)
+- [Roadmap](#roadmap)
+- [License](#license)
+
+---
+
+## Overview
+
+MaliksTech PM is a lightweight, self-hosted alternative to tools like Trello or Jira, built to demonstrate a clean, production-shaped full-stack implementation: a role-aware ASP.NET Core API backed by SQL Server, paired with a fast, type-safe React client. It also integrates Google Gemini so a project manager can describe an idea in one sentence and get a fully-scoped task list back in seconds.
 
 ## Features
 
-- **Auth & authorization** — JWT-based login/register, BCrypt-hashed passwords, role-based access (Admin / Manager / Member)
-- **Projects** — create, search, sort, paginate; risk level tracking (Safe / At Risk / Off Track)
-- **Tasks** — Kanban board (Todo / In Progress / Done), priorities, estimated hours, sub-tasks, assignees
-- **Comments** — per-task discussion thread, authors (or admins) can delete their own comments
-- **AI project generation** — describe a project idea, and Google Gemini breaks it down into a full task list (title, description, priority, estimated hours, insight) saved directly to the database
-- **Ownership rules** — only a project's owner or an Admin can edit/delete it; same for its tasks
+**Authentication & Authorization**
+- JWT-based registration and login with BCrypt password hashing
+- Role-based access control (`Admin`, `Manager`, `Member`) enforced at the API layer
+- Ownership checks — only a resource's owner or an Admin can modify or delete it
+
+**Project & Task Management**
+- Full CRUD for projects with search, sorting, and pagination
+- Automatic risk-level classification (`Safe` / `At Risk` / `Off Track`)
+- Kanban-style task board (`Todo` → `In Progress` → `Done`)
+- Task priorities, estimated hours, due dates, assignees, and sub-tasks
+
+**Collaboration**
+- Threaded comments on every task
+- Comment authors and Admins can delete comments
+
+**AI-Powered Planning**
+- One-sentence project idea in → full task breakdown out, via Google Gemini
+- Each generated task includes a title, description, priority, hour estimate, and a short AI insight
 
 ## Tech Stack
 
-### Backend (`MaliksTech.PM.Api/`)
+### Backend — `MaliksTech.PM.Api/`
 
-| Component | Technology |
+| Layer | Technology |
 |---|---|
 | Framework | ASP.NET Core 9 Web API |
 | Database | Microsoft SQL Server |
 | ORM | Entity Framework Core 9 (Code-First + Migrations) |
-| Auth | Custom JWT + BCrypt password hashing |
+| Auth | Custom JWT issuance + BCrypt password hashing |
 | Validation | FluentValidation + Data Annotations |
-| AI | Google Gemini (via direct HTTP call) |
-| Docs | OpenAPI / Scalar |
+| AI Integration | Google Gemini (`generativelanguage.googleapis.com`) |
+| API Docs | OpenAPI / Scalar |
 
-### Frontend (`pm-client/`)
+### Frontend — `pm-client/`
 
-| Component | Technology |
+| Layer | Technology |
 |---|---|
 | Library | React 18 + TypeScript |
-| Build tool | Vite |
+| Build Tool | Vite |
 | Styling | Tailwind CSS v4 |
 | Routing | React Router v6 |
-| Server state | TanStack Query |
-| HTTP client | Axios |
+| Server State | TanStack Query |
+| HTTP Client | Axios (with JWT interceptor) |
+
+## Architecture
+
+```
+┌─────────────────┐        JWT-authenticated REST         ┌──────────────────────┐
+│   React Client    │ ─────────────────────────────────▶ │   ASP.NET Core API     │
+│  (pm-client, Vite) │ ◀───────────────────────────────── │  Controllers → EF Core │
+└─────────────────┘              JSON                     └──────────┬───────────┘
+                                                                        │
+                                                            ┌───────────▼───────────┐
+                                                            │   SQL Server database  │
+                                                            └────────────────────────┘
+                                                                        │
+                                                            ┌───────────▼───────────┐
+                                                            │   Google Gemini API     │
+                                                            │ (AI task generation)    │
+                                                            └────────────────────────┘
+```
+
+The API follows a layered structure: **Models** (EF Core entities) → **Data** (`AppDbContext`) → **DTOs** (request/response contracts, keeping entities from leaking) → **Controllers** (HTTP endpoints) → **Services** (token issuance, AI integration).
 
 ## Project Structure
 
 ```
 MaliksTech.PM.Api/
-├── MaliksTech.PM.Api/        # ASP.NET Core Web API
-│   ├── Controllers/          # Auth, Projects, Tasks, Comments, Users, Ai
-│   ├── Models/                # EF Core entities
-│   ├── DTOs/                  # Request/response shapes
-│   ├── Data/                  # AppDbContext
-│   ├── Services/              # TokenService, AiAssistantService
-│   ├── Validators/             # FluentValidation rules
+├── MaliksTech.PM.Api/          ASP.NET Core Web API
+│   ├── Controllers/            Auth, Projects, Tasks, Comments, Users, Ai
+│   ├── Models/                 EF Core entities
+│   ├── DTOs/                   Request/response shapes
+│   ├── Data/                   AppDbContext
+│   ├── Services/                TokenService, AiAssistantService
+│   ├── Validators/               FluentValidation rules
 │   └── Migrations/
-└── pm-client/                 # React + Tailwind frontend
+└── pm-client/                   React + Tailwind frontend
     └── src/
-        ├── api/               # axios client + endpoint wrappers
-        ├── context/           # AuthContext
-        ├── components/        # Navbar, ProtectedRoute, Badge
-        └── pages/              # Login, Register, Dashboard, ProjectDetail, TaskDetail
+        ├── api/                 Axios client + endpoint wrappers
+        ├── context/             AuthContext
+        ├── components/           Navbar, ProtectedRoute, Badge
+        └── pages/                Login, Register, Dashboard, ProjectDetail, TaskDetail
 ```
 
-## Prerequisites
+## Getting Started
+
+### Prerequisites
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download)
 - [Node.js](https://nodejs.org/) 18+
 - SQL Server (local instance or remote)
 
-## Getting Started
+### 1. Clone
 
-### 1. Backend
+```bash
+git clone https://github.com/imalekj/MaliksTech.PM.git
+cd MaliksTech.PM
+```
+
+### 2. Backend setup
 
 ```bash
 cd MaliksTech.PM.Api
+
+# Configure secrets (never stored in source control)
 dotnet user-secrets set "Jwt:Key" "<a-long-random-secret-at-least-32-chars>"
 dotnet user-secrets set "Gemini:ApiKey" "<your-gemini-api-key>"
+
+# Apply database migrations
 dotnet ef database update
+
+# Run the API
 dotnet run
 ```
 
-The API starts at `http://localhost:5143`. On first run it seeds an admin account:
+The API starts at `http://localhost:5143`. On first run it seeds a demo admin account:
 
-- **Email:** `malik@example.com`
-- **Password:** `Malik@123`
+| Field | Value |
+|---|---|
+| Email | `malik@example.com` |
+| Password | `Malik@123` |
+| Role | `Admin` |
 
-> `ConnectionStrings:DefaultConnection` in `appsettings.json` points to a local SQL Server instance (`Server=localhost;Database=MaliksTechPMDb;Trusted_Connection=True`). Adjust it for your environment if needed.
-
-### 2. Frontend
+### 3. Frontend setup
 
 ```bash
 cd pm-client
@@ -92,15 +172,61 @@ npm install
 npm run dev
 ```
 
-The app starts at `http://localhost:5173` and expects the API at the URL configured in `pm-client/.env` (`VITE_API_URL`, defaults to `http://localhost:5143/api`).
+The app starts at `http://localhost:5173`.
 
-## Security Notes
+## Environment & Configuration
 
-- No secrets are committed to this repo — `Jwt:Key` and `Gemini:ApiKey` are supplied via `dotnet user-secrets` (dev) or environment variables (production), never hardcoded.
-- Passwords are hashed with BCrypt; the API never returns password hashes in any response.
-- CORS is restricted to the origins listed under `Cors:AllowedOrigins` in `appsettings.json`.
+| Setting | Location | Description |
+|---|---|---|
+| `ConnectionStrings:DefaultConnection` | `appsettings.json` | SQL Server connection string |
+| `Jwt:Key` | user-secrets | HMAC signing key for JWTs (min. 32 chars) |
+| `Jwt:Issuer` / `Jwt:Audience` | `appsettings.json` | Token issuer/audience validation |
+| `Gemini:ApiKey` | user-secrets | Google Gemini API key |
+| `Cors:AllowedOrigins` | `appsettings.json` | Origins permitted to call the API |
+| `VITE_API_URL` | `pm-client/.env` | Base URL the frontend uses to reach the API |
+
+## API Reference
+
+All endpoints below (except `auth/register` and `auth/login`) require a `Bearer` JWT in the `Authorization` header.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/auth/register` | Create an account |
+| `POST` | `/api/auth/login` | Authenticate and receive a JWT |
+| `GET` | `/api/projects` | List projects (search, sort, paginate) |
+| `POST` | `/api/projects` | Create a project |
+| `GET` | `/api/projects/{id}` | Get project details |
+| `PUT` | `/api/projects/{id}` | Update a project *(owner/Admin only)* |
+| `DELETE` | `/api/projects/{id}` | Delete a project *(owner/Admin only)* |
+| `GET` | `/api/tasks` | List tasks (filter by project, status, priority) |
+| `POST` | `/api/tasks` | Create a task |
+| `PATCH` | `/api/tasks/{id}/status` | Update a task's status |
+| `PUT` | `/api/tasks/{id}` | Update a task |
+| `DELETE` | `/api/tasks/{id}` | Delete a task *(project owner/Admin only)* |
+| `GET` | `/api/tasks/{taskId}/comments` | List comments on a task |
+| `POST` | `/api/tasks/{taskId}/comments` | Add a comment |
+| `DELETE` | `/api/comments/{id}` | Delete a comment *(author/Admin only)* |
+| `GET` | `/api/users` | List users |
+| `DELETE` | `/api/users/{id}` | Delete a user *(Admin only)* |
+| `POST` | `/api/ai/generate-and-save-project` | Generate a project + tasks from a description |
+
+## Security
+
+- No secrets are committed to source control — `Jwt:Key` and `Gemini:ApiKey` are provided via `dotnet user-secrets` in development and environment variables in production.
+- Passwords are hashed with BCrypt; API responses never include password hashes.
+- All mutating endpoints require authentication; destructive actions are restricted by ownership or role.
+- CORS is locked to the origins explicitly listed in configuration.
+
+## Roadmap
+
+- [ ] Project membership (invite specific users instead of global visibility)
+- [ ] Real-time updates via SignalR
+- [ ] File attachments on tasks
+- [ ] Automated test suite (xUnit + integration tests)
 
 ## License
 
-Private/internal project — no license specified.
+This project is currently unlicensed and intended for private/internal use. Contact the repository owner before reuse or redistribution.
 ````
+
+I also updated the actual [README.md](README.md) file to match — not committed yet, let me know if you'd like it pushed.
