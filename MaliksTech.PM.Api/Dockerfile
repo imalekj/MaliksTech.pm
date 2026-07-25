@@ -12,6 +12,9 @@ WORKDIR /app
 COPY --from=build /app .
 
 ENV ASPNETCORE_ENVIRONMENT=Production
+# Constrained containers often hit the inotify instance limit; the config
+# system's FileSystemWatcher-based reload-on-change isn't needed at runtime.
+ENV DOTNET_hostBuilder__reloadConfigOnChange=false
 EXPOSE 8080
 
 # Render injects $PORT at runtime; bind Kestrel to it.
