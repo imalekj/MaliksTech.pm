@@ -1,0 +1,29 @@
+databases:
+  - name: malikstech-pm-db
+    databaseName: malikstechpmdb
+    user: malikstech
+    plan: free
+
+services:
+  - type: web
+    name: malikstech-pm-api
+    runtime: docker
+    dockerfilePath: ./MaliksTech.PM.Api/Dockerfile
+    dockerContext: ./MaliksTech.PM.Api
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: malikstech-pm-db
+          property: connectionString
+      - key: Jwt__Key
+        generateValue: true
+      - key: Jwt__Issuer
+        value: MaliksTechPM
+      - key: Jwt__Audience
+        value: MaliksTechPM
+      - key: Gemini__ApiKey
+        sync: false
+      - key: Cors__AllowedOrigins__0
+        sync: false

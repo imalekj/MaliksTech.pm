@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using System.Text;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -13,8 +14,29 @@ using MaliksTech.PM.Api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Render (and most Postgres hosts) hand out DATABASE_URL as a postgres:// URI,
+// which Npgsql's keyword=value parser can't read directly — convert it if needed.
+static string NormalizeConnectionString(string? raw)
+{
+    if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+    if (!raw.StartsWith("postgres://") && !raw.StartsWith("postgresql://")) return raw;
+
+    var uri = new Uri(raw);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var csBuilder = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port > 0 ? uri.Port : 5432,
+        Username = Uri.UnescapeDataString(userInfo[0]),
+        Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty,
+        Database = uri.AbsolutePath.TrimStart('/'),
+        SslMode = SslMode.Require
+    };
+    return csBuilder.ToString();
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(NormalizeConnectionString(builder.Configuration.GetConnectionString("DefaultConnection"))));
 
 builder.Services.AddControllers()
     .AddJsonOptions(x =>
@@ -70,11 +92,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
-
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
@@ -99,6 +116,7 @@ app.UseCors("FrontendPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 using (var scope = app.Services.CreateScope())
 {
