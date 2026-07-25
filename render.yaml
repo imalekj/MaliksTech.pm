@@ -1,9 +1,7 @@
-databases:
-  - name: malikstech-pm-db
-    databaseName: malikstechpmdb
-    user: malikstech
-    plan: free
-
+# Note: the live deployment uses an external Neon Postgres database (free tier,
+# no card required) rather than Render's own Postgres add-on, since Render only
+# allows one free-tier database per account. Set ConnectionStrings__DefaultConnection
+# below to your own Postgres URL (Neon, Render Postgres, or otherwise).
 services:
   - type: web
     name: malikstech-pm-api
@@ -14,9 +12,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: ConnectionStrings__DefaultConnection
-        fromDatabase:
-          name: malikstech-pm-db
-          property: connectionString
+        sync: false
       - key: Jwt__Key
         generateValue: true
       - key: Jwt__Issuer
