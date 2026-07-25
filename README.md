@@ -1,6 +1,3 @@
-Here's the polished version:
-
-````markdown
 <div align="center">
 
 # MaliksTech PM
@@ -10,14 +7,24 @@ Here's the polished version:
 [![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![SQL Server](https://img.shields.io/badge/SQL_Server-CC2927?logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/sql-server)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
-[Repository](https://github.com/imalekj/MaliksTech.PM) · [Report an Issue](https://github.com/imalekj/MaliksTech.PM/issues)
+[Live App](https://maliks-tech-pm.vercel.app) · [Repository](https://github.com/imalekj/MaliksTech.PM) · [Report an Issue](https://github.com/imalekj/MaliksTech.PM/issues)
 
 </div>
 
 ---
+
+## Live Deployment
+
+| Service | Platform | URL |
+|---|---|---|
+| Frontend | Vercel | https://maliks-tech-pm.vercel.app |
+| API | Render (Docker) | https://malikstech-pm-api.onrender.com |
+| Database | Neon (serverless Postgres) | — |
+
+> The API runs on Render's free tier, which spins down after inactivity — the first request after idling may take ~30-60s to wake up.
 
 ## Table of Contents
 
@@ -37,7 +44,7 @@ Here's the polished version:
 
 ## Overview
 
-MaliksTech PM is a lightweight, self-hosted alternative to tools like Trello or Jira, built to demonstrate a clean, production-shaped full-stack implementation: a role-aware ASP.NET Core API backed by SQL Server, paired with a fast, type-safe React client. It also integrates Google Gemini so a project manager can describe an idea in one sentence and get a fully-scoped task list back in seconds.
+MaliksTech PM is a lightweight, self-hosted alternative to tools like Trello or Jira, built to demonstrate a clean, production-shaped full-stack implementation: a role-aware ASP.NET Core API backed by PostgreSQL, paired with a fast, type-safe React client. It also integrates Google Gemini so a project manager can describe an idea in one sentence and get a fully-scoped task list back in seconds.
 
 ## Features
 
@@ -67,12 +74,13 @@ MaliksTech PM is a lightweight, self-hosted alternative to tools like Trello or 
 | Layer | Technology |
 |---|---|
 | Framework | ASP.NET Core 9 Web API |
-| Database | Microsoft SQL Server |
-| ORM | Entity Framework Core 9 (Code-First + Migrations) |
+| Database | PostgreSQL (Neon in production) |
+| ORM | Entity Framework Core 9 (Code-First + Migrations, Npgsql provider) |
 | Auth | Custom JWT issuance + BCrypt password hashing |
 | Validation | FluentValidation + Data Annotations |
 | AI Integration | Google Gemini (`generativelanguage.googleapis.com`) |
 | API Docs | OpenAPI / Scalar |
+| Deployment | Docker container on Render |
 
 ### Frontend — `pm-client/`
 
@@ -84,17 +92,18 @@ MaliksTech PM is a lightweight, self-hosted alternative to tools like Trello or 
 | Routing | React Router v6 |
 | Server State | TanStack Query |
 | HTTP Client | Axios (with JWT interceptor) |
+| Deployment | Vercel |
 
 ## Architecture
 
 ```
 ┌─────────────────┐        JWT-authenticated REST         ┌──────────────────────┐
 │   React Client    │ ─────────────────────────────────▶ │   ASP.NET Core API     │
-│  (pm-client, Vite) │ ◀───────────────────────────────── │  Controllers → EF Core │
+│  (Vercel, Vite)    │ ◀───────────────────────────────── │  (Render, Docker)      │
 └─────────────────┘              JSON                     └──────────┬───────────┘
                                                                         │
                                                             ┌───────────▼───────────┐
-                                                            │   SQL Server database  │
+                                                            │  PostgreSQL (Neon)      │
                                                             └────────────────────────┘
                                                                         │
                                                             ┌───────────▼───────────┐
@@ -116,13 +125,15 @@ MaliksTech.PM.Api/
 │   ├── Data/                   AppDbContext
 │   ├── Services/                TokenService, AiAssistantService
 │   ├── Validators/               FluentValidation rules
-│   └── Migrations/
-└── pm-client/                   React + Tailwind frontend
-    └── src/
-        ├── api/                 Axios client + endpoint wrappers
-        ├── context/             AuthContext
-        ├── components/           Navbar, ProtectedRoute, Badge
-        └── pages/                Login, Register, Dashboard, ProjectDetail, TaskDetail
+│   ├── Migrations/
+│   └── Dockerfile
+├── pm-client/                   React + Tailwind frontend
+│   └── src/
+│       ├── api/                 Axios client + endpoint wrappers
+│       ├── context/             AuthContext
+│       ├── components/           Navbar, ProtectedRoute, Badge, Avatar
+│       └── pages/                Login, Register, Dashboard, ProjectDetail, TaskDetail
+└── render.yaml                  Render Blueprint (API + database)
 ```
 
 ## Getting Started
@@ -131,7 +142,7 @@ MaliksTech.PM.Api/
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download)
 - [Node.js](https://nodejs.org/) 18+
-- SQL Server (local instance or remote)
+- A PostgreSQL database (local instance, Docker, or a free hosted one like [Neon](https://neon.tech))
 
 ### 1. Clone
 
@@ -144,6 +155,10 @@ cd MaliksTech.PM
 
 ```bash
 cd MaliksTech.PM.Api
+
+# Point at your Postgres instance
+# (edit appsettings.json's ConnectionStrings:DefaultConnection, or override via user-secrets)
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=MaliksTechPMDb;Username=postgres;Password=postgres"
 
 # Configure secrets (never stored in source control)
 dotnet user-secrets set "Jwt:Key" "<a-long-random-secret-at-least-32-chars>"
@@ -174,16 +189,22 @@ npm run dev
 
 The app starts at `http://localhost:5173`.
 
+### 4. Deploying your own copy
+
+- **API → Render**: push to a GitHub repo and create a Blueprint from `render.yaml` (or use `render services create` with the Render CLI). Set `Gemini__ApiKey` and `Cors__AllowedOrigins__0` in the service's environment variables.
+- **Database → Neon**: `neonctl projects create` (or via the Neon console) gives you a `postgresql://...` connection string — pass it as `ConnectionStrings__DefaultConnection`. The app auto-converts Postgres URI connection strings to Npgsql's keyword format.
+- **Frontend → Vercel**: `vercel --prod` from `pm-client/`, with `VITE_API_URL` set to your deployed API's `/api` base URL.
+
 ## Environment & Configuration
 
 | Setting | Location | Description |
 |---|---|---|
-| `ConnectionStrings:DefaultConnection` | `appsettings.json` | SQL Server connection string |
-| `Jwt:Key` | user-secrets | HMAC signing key for JWTs (min. 32 chars) |
+| `ConnectionStrings:DefaultConnection` | `appsettings.json` / env var | PostgreSQL connection string (keyword or `postgres://` URI form) |
+| `Jwt:Key` | user-secrets / env var | HMAC signing key for JWTs (min. 32 chars) |
 | `Jwt:Issuer` / `Jwt:Audience` | `appsettings.json` | Token issuer/audience validation |
-| `Gemini:ApiKey` | user-secrets | Google Gemini API key |
-| `Cors:AllowedOrigins` | `appsettings.json` | Origins permitted to call the API |
-| `VITE_API_URL` | `pm-client/.env` | Base URL the frontend uses to reach the API |
+| `Gemini:ApiKey` | user-secrets / env var | Google Gemini API key |
+| `Cors:AllowedOrigins` | `appsettings.json` / env var | Origins permitted to call the API |
+| `VITE_API_URL` | `pm-client/.env` / Vercel env var | Base URL the frontend uses to reach the API |
 
 ## API Reference
 
@@ -209,10 +230,11 @@ All endpoints below (except `auth/register` and `auth/login`) require a `Bearer`
 | `GET` | `/api/users` | List users |
 | `DELETE` | `/api/users/{id}` | Delete a user *(Admin only)* |
 | `POST` | `/api/ai/generate-and-save-project` | Generate a project + tasks from a description |
+| `GET` | `/health` | Health check (used by Render) |
 
 ## Security
 
-- No secrets are committed to source control — `Jwt:Key` and `Gemini:ApiKey` are provided via `dotnet user-secrets` in development and environment variables in production.
+- No secrets are committed to source control — `Jwt:Key`, `Gemini:ApiKey`, and the database connection string are provided via `dotnet user-secrets` in development and environment variables in production.
 - Passwords are hashed with BCrypt; API responses never include password hashes.
 - All mutating endpoints require authentication; destructive actions are restricted by ownership or role.
 - CORS is locked to the origins explicitly listed in configuration.
@@ -227,4 +249,3 @@ All endpoints below (except `auth/register` and `auth/login`) require a `Bearer`
 ## License
 
 Private/internal project — no license specified.
-````
