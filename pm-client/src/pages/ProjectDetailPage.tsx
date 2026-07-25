@@ -4,14 +4,18 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import * as projectsApi from '../api/projects'
 import * as tasksApi from '../api/tasks'
 import Badge from '../components/Badge'
+import Avatar from '../components/Avatar'
 import type { ProjectTask, TaskPriority, TaskStatus } from '../api/types'
 import { isAxiosError } from 'axios'
 
-const COLUMNS: { status: TaskStatus; label: string }[] = [
-  { status: 'Todo', label: 'قيد الانتظار' },
-  { status: 'InProgress', label: 'قيد التنفيذ' },
-  { status: 'Done', label: 'مكتملة' },
+const COLUMNS: { status: TaskStatus; label: string; accent: string; dot: string }[] = [
+  { status: 'Todo', label: 'قيد الانتظار', accent: 'border-t-slate-300', dot: 'bg-slate-400' },
+  { status: 'InProgress', label: 'قيد التنفيذ', accent: 'border-t-amber-400', dot: 'bg-amber-500' },
+  { status: 'Done', label: 'مكتملة', accent: 'border-t-emerald-400', dot: 'bg-emerald-500' },
 ]
+
+const inputClass =
+  'w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-colors'
 
 export default function ProjectDetailPage() {
   const { id } = useParams()
@@ -43,51 +47,60 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <Link to="/" className="text-sm text-indigo-600 hover:underline">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 transition-colors"
+      >
         ← عودة إلى المشاريع
       </Link>
 
       {project && (
-        <div className="mt-3 mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div className="mt-3 mb-8 flex flex-wrap items-start justify-between gap-4 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold text-slate-900">{project.title}</h1>
-              <Badge value={project.riskLevel} />
+            <div className="flex items-center gap-2 mb-2">
+              <h1 className="text-2xl font-bold text-slate-900">{project.title}</h1>
+              <Badge value={project.riskLevel} withDot />
             </div>
-            <p className="text-slate-500 mt-1 max-w-2xl">{project.description}</p>
-            <p className="text-xs text-slate-400 mt-2">
-              المالك: {project.ownerName} · موعد الانتهاء:{' '}
-              {new Date(project.targetEndDate).toLocaleDateString('ar-EG')}
-            </p>
+            <p className="text-slate-500 max-w-2xl">{project.description}</p>
+            <div className="flex items-center gap-2 mt-3 text-xs text-slate-400">
+              <Avatar name={project.ownerName} />
+              <span>{project.ownerName}</span>
+              <span className="text-slate-300">•</span>
+              <span>موعد الانتهاء {new Date(project.targetEndDate).toLocaleDateString('ar-EG')}</span>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <button
               onClick={() => setShowNewTask(true)}
-              className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold shadow-md shadow-indigo-200 hover:shadow-lg hover:opacity-95 transition-all"
             >
-              مهمة جديدة
+              + مهمة جديدة
             </button>
             <button
               onClick={() => {
                 if (confirm('هل أنت متأكد من حذف المشروع؟')) deleteProjectMutation.mutate()
               }}
-              className="px-4 py-2 rounded-md border border-red-300 text-red-600 text-sm font-medium hover:bg-red-50"
+              className="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
             >
-              حذف المشروع
+              حذف
             </button>
           </div>
         </div>
       )}
 
-      {isLoading && <p className="text-slate-500">جارٍ التحميل...</p>}
+      {isLoading && <p className="text-slate-400 text-sm">جارٍ التحميل...</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {COLUMNS.map((col) => (
-          <div key={col.status} className="bg-slate-100/70 rounded-xl p-3">
-            <h3 className="text-sm font-semibold text-slate-700 mb-3 px-1">
-              {col.label} ({tasks.filter((t) => t.status === col.status).length})
-            </h3>
-            <div className="space-y-3">
+          <div key={col.status} className={`bg-slate-50 border-t-4 ${col.accent} rounded-2xl p-3`}>
+            <div className="flex items-center gap-2 mb-3 px-1">
+              <span className={`w-2 h-2 rounded-full ${col.dot}`} />
+              <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
+              <span className="text-xs text-slate-400 bg-white rounded-full px-1.5 py-0.5 border border-slate-200">
+                {tasks.filter((t) => t.status === col.status).length}
+              </span>
+            </div>
+            <div className="space-y-3 min-h-[4rem]">
               {tasks
                 .filter((t) => t.status === col.status)
                 .map((task) => (
@@ -118,15 +131,22 @@ function TaskCard({ task, onChanged }: { task: ProjectTask; onChanged: () => voi
   return (
     <Link
       to={`/tasks/${task.id}`}
-      className="block bg-white border border-slate-200 rounded-lg p-3 hover:shadow-sm transition-shadow"
+      className="block bg-white border border-slate-200/80 rounded-xl p-3.5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h4 className="text-sm font-medium text-slate-900">{task.title}</h4>
+        <h4 className="text-sm font-medium text-slate-900 leading-snug">{task.title}</h4>
         <Badge value={task.priority} />
       </div>
-      {task.description && <p className="text-xs text-slate-500 line-clamp-2 mb-2">{task.description}</p>}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-400">{task.assigneeName ?? 'غير معيّنة'}</span>
+      {task.description && <p className="text-xs text-slate-500 line-clamp-2 mb-3">{task.description}</p>}
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+        {task.assigneeName ? (
+          <div className="flex items-center gap-1.5">
+            <Avatar name={task.assigneeName} />
+            <span className="text-xs text-slate-500">{task.assigneeName}</span>
+          </div>
+        ) : (
+          <span className="text-xs text-slate-300">غير معيّنة</span>
+        )}
         <select
           value={task.status}
           onClick={(e) => e.preventDefault()}
@@ -134,7 +154,7 @@ function TaskCard({ task, onChanged }: { task: ProjectTask; onChanged: () => voi
             e.preventDefault()
             statusMutation.mutate(e.target.value as TaskStatus)
           }}
-          className="text-xs border border-slate-200 rounded px-1.5 py-0.5"
+          className="text-xs border border-slate-200 rounded-lg px-1.5 py-1 bg-white hover:border-slate-300 transition-colors"
         >
           {COLUMNS.map((c) => (
             <option key={c.status} value={c.status}>
@@ -182,11 +202,20 @@ function NewTaskModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">مهمة جديدة</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+    <div
+      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 animate-scale-in"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-slate-900">مهمة جديدة</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+          >
             ✕
           </button>
         </div>
@@ -196,22 +225,22 @@ function NewTaskModal({
             placeholder="عنوان المهمة"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className={inputClass}
           />
           <textarea
             placeholder="الوصف"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className={inputClass}
           />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">الأولوية</label>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">الأولوية</label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className={inputClass}
               >
                 <option value="Low">منخفضة</option>
                 <option value="Medium">متوسطة</option>
@@ -220,22 +249,22 @@ function NewTaskModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">الساعات المقدّرة</label>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">الساعات المقدّرة</label>
               <input
                 type="number"
                 min={1}
                 max={100}
                 value={estimatedHours}
                 onChange={(e) => setEstimatedHours(Number(e.target.value))}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className={inputClass}
               />
             </div>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
           <button
             type="submit"
             disabled={mutation.isPending}
-            className="w-full bg-indigo-600 text-white rounded-md py-2 text-sm font-medium hover:bg-indigo-700 disabled:opacity-60"
+            className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl py-2.5 text-sm font-semibold shadow-md shadow-indigo-200 hover:shadow-lg hover:opacity-95 disabled:opacity-60 transition-all"
           >
             {mutation.isPending ? '...' : 'إنشاء المهمة'}
           </button>

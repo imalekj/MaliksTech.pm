@@ -10,7 +10,7 @@ import { useAuth } from './context/AuthContext'
 
 function AppLayout() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Navbar />
       <Routes>
         <Route element={<ProtectedRoute />}>
