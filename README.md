@@ -226,4 +226,5 @@ All endpoints below (except `auth/register` and `auth/login`) require a `Bearer`
 
 ## License
 
-This project is currently unlicensed and intended for private/internal use. Contact the repository owner before reuse or redistribution.
+Private/internal project — no license specified.
+````
